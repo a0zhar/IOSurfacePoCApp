@@ -80,19 +80,6 @@ jobs:
           # Export the app without signing
           xcodebuild -exportArchive \
                      -archivePath "$ARCHIVE_PATH" \
-                     -exportOptionsPlist <(cat <<EOF
-{
-  "method": "ad-hoc",
-  "signingStyle": "manual",
-  "provisioningProfiles": {},
-  "teamID": "",
-  "stripSwiftSymbols": true,
-  "compileBitcode": false,
-  "signingCertificate": "",
-  "thinning": "<none>"
-}
-EOF
-                     ) \
                      -exportPath ${{ github.workspace }}/build
 
       # Step 5: Upload artifact
