@@ -5,7 +5,7 @@
     <key>compileBitcode</key>
     <false/>
     <key>method</key>
-    <string>developer</string>
+    <string>release-testing</string>
     <key>signingStyle</key>
     <string>manual</string>
     <key>stripSwiftSymbols</key>
