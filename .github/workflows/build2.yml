@@ -1,15 +1,11 @@
 name: Build iOS App2
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   build:
+    name: Build
     runs-on: macos-latest
 
     steps:
@@ -21,11 +17,16 @@ jobs:
 
       - name: Build the app
         run: |
-          xcodebuild -project explt.xcodeproj -scheme explt -configuration Release -archivePath ${{ github.workspace }}/build/explt.xcarchive archive
-          xcodebuild -exportArchive -archivePath ${{ github.workspace }}/build/explt.xcarchive -exportOptionsPlist exportOptions.plist -exportPath ${{ github.workspace }}/build
+          xcodebuild -project explt.xcodeproj \
+                     -scheme explt \
+                     -configuration Release \
+                     -archivePath ${{ github.workspace }}/build/explt.xcarchive archive
+          xcodebuild -exportArchive -archivePath ${{ github.workspace }}/build/explt.xcarchive \
+                     -exportOptionsPlist exportOptions.plist \
+                     -exportPath ${{ github.workspace }}/build
 
-      - name: Upload IPA as artifact
-        uses: actions/upload-artifact@v2
+      - name: Upload artifact
+        uses: actions/upload-artifact@main
         with:
           name: explt-ipa
           path: build/*.ipa
