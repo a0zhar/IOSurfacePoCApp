@@ -36,6 +36,11 @@ jobs:
           fi
           xcodebuild -version
 
+      # List contents of the workspace for debugging
+      - name: List workspace contents
+        run: |
+          echo "Contents of the workspace:"
+          ls -la ${{ github.workspace }}
       # Step 4: Build the app (Unsigned)
       - name: Build the app
         run: |
