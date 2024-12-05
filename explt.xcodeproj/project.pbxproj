@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56; // Updated to reflect Xcode 16
+	objectVersion = 56;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -112,7 +112,7 @@
 				LastUpgradeCheck = 1610;
 				TargetAttributes = {
 					5D7795B32CFB45E800EA74F6 = {
-						CreatedOnToolsVersion = 16.1; // Updated to reflect Xcode 16
+						CreatedOnToolsVersion = 16.1;
 					};
 				};
 			};
@@ -125,7 +125,7 @@
 			);
 			mainGroup = 5D7795AB2CFB45E800EA74F6;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 56; // Updated to reflect Xcode 16
+			preferredProjectObjectVersion = 56;
 			productRefGroup = 5D7795B52CFB45E800EA74F6 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -329,10 +329,10 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		5D7795AF2CFB45EA00EA74F6 /* Build configuration list for PBXProject "explt" */ = {
+		5D7795AF2CFB45E800EA74F6 /* Build configuration list for PBXProject "explt" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				5D7795CD2CFB45EA00EA74F6 /* Debug */,
+				5D7795CF2CFB45EA00EA74F6 /* Debug */,
 				5D7795D02CFB45EA00EA74F6 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
