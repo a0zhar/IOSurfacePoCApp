@@ -1,4 +1,4 @@
-name: Compile PoC Application (Use Xcode 13)
+name: Compile PoC Application (Use Xcode 16)
 
 on:
   workflow_dispatch:
@@ -19,21 +19,19 @@ jobs:
         run: |
           echo "Available Xcode versions:"
           ls /Applications | grep Xcode
-          echo "Targeting Xcode 13.x..."
-          if [ ! -d "/Applications/Xcode_13.app" ] && [ ! -d "/Applications/Xcode_13.0.app" ]; then
-            echo "Error: Xcode 13 is not installed on the runner."
+          echo "Targeting Xcode 16.1..."
+          if [ ! -d "/Applications/Xcode_16.1.app" ]; then
+            echo "Error: Xcode 16 is not installed on the runner."
             exit 1
           fi
 
-      # Step 3: Switch to Xcode 13
-      - name: Set up Xcode 13
+      # Step 3: Switch to Xcode 16
+      - name: Set up Xcode 16
         run: |
-          if [ -d "/Applications/Xcode_13.app" ]; then
-            sudo xcode-select --switch /Applications/Xcode_13.app/Contents/Developer
-          elif [ -d "/Applications/Xcode_13.0.app" ]; then
-            sudo xcode-select --switch /Applications/Xcode_13.0.app/Contents/Developer
+          if [ -d "/Applications/Xcode_16.1.app" ]; then
+            sudo xcode-select --switch /Applications/Xcode_16.1.app/Contents/Developer
           else
-            echo "Error: Unable to locate Xcode 13 directory."
+            echo "Error: Unable to locate Xcode 16 directory."
             exit 1
           fi
           xcodebuild -version
