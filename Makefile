@@ -30,7 +30,7 @@ clean:
 	@echo "Cleaning the project..."
 	@xcodebuild -project "$(PROJECT_FILE)" \
 		-scheme explt \
-		-configuration Debug \
+		-configuration Release \
 		-sdk iphoneos \
 		-derivedDataPath "$(DERIVED_DATA_PATH)" \
 		clean
@@ -43,8 +43,8 @@ archive:
 	fi
 	@echo "Building and archiving the app (unsigned)..."
 	@xcodebuild -project "$(PROJECT_FILE)" \
-		-scheme explt \
-		-configuration Debug \
+		-scheme explt  \
+		-configuration Release \
 		-sdk iphoneos \
 		-derivedDataPath "$(DERIVED_DATA_PATH)" \
 		-archivePath "$(ARCHIVE_PATH)" \
@@ -52,15 +52,14 @@ archive:
 		CODE_SIGNING_REQUIRED=NO \
 		CODE_SIGN_ENTITLEMENTS="" \
 		CODE_SIGNING_ALLOWED=NO \
-		archive
+		DEVELOPMENT_TEAM=""\
+		PROVISIONING_PROFILE=""\
+                archive
 
 # Step 4: Export the unsigned IPA
 export_ipa:
 	@echo "Exporting the unsigned IPA file..."
-	@xcodebuild -exportArchive \
-		-archivePath "$(ARCHIVE_PATH)" \
-		-exportOptionsPlist "$(EXPORT_OPTIONS_PLIST)" \
-		-exportPath "$(EXPORT_PATH)"
+	@xcodebuild -exportArchive -archivePath "$(ARCHIVE_PATH)" -exportOptionsPlist "$(EXPORT_OPTIONS_PLIST)" -exportPath "$(EXPORT_PATH)"
 
 # Full build pipeline
 build_ipa: setup_xcode clean archive export_ipa
