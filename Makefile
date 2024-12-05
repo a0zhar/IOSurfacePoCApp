@@ -1,12 +1,16 @@
+# Project variables
+NAME := explt
 PROJECT_FILE := $(shell find . -name "*.xcodeproj" | head -n 1)
-ARCHIVE_PATH := ./build/explt.xcarchive
+ARCHIVE_PATH := ./build/$(NAME).xcarchive
 DERIVED_DATA_PATH := ./build/DerivedData
+STAGE_DIR := ./build/stage
 EXPORT_PATH := ./build
 EXPORT_OPTIONS_PLIST := ./exportOptions.plist
-IPA_PATH := $(EXPORT_PATH)/explt.ipa
+IPA_PATH := $(EXPORT_PATH)/$(NAME).ipa
+PAYLOAD_DIR := $(STAGE_DIR)/Payload
 
 # Target to build the unsigned IPA
-all: build_ipa
+all: package
 
 # Step 1: Set up Xcode environment
 setup_xcode:
@@ -29,8 +33,8 @@ clean:
 	fi
 	@echo "Cleaning the project..."
 	@xcodebuild -project "$(PROJECT_FILE)" \
-		-scheme explt \
-		-configuration Release \
+		-scheme $(NAME) \
+		-configuration Debug \
 		-sdk iphoneos \
 		-derivedDataPath "$(DERIVED_DATA_PATH)" \
 		clean
@@ -43,8 +47,8 @@ archive:
 	fi
 	@echo "Building and archiving the app (unsigned)..."
 	@xcodebuild -project "$(PROJECT_FILE)" \
-		-scheme explt  \
-		-configuration Release \
+		-scheme $(NAME) \
+		-configuration Debug \
 		-sdk iphoneos \
 		-derivedDataPath "$(DERIVED_DATA_PATH)" \
 		-archivePath "$(ARCHIVE_PATH)" \
@@ -52,20 +56,26 @@ archive:
 		CODE_SIGNING_REQUIRED=NO \
 		CODE_SIGN_ENTITLEMENTS="" \
 		CODE_SIGNING_ALLOWED=NO \
-		DEVELOPMENT_TEAM=""\
-		PROVISIONING_PROFILE=""\
-                archive
+		archive
 
-# Step 4: Export the unsigned IPA
-export_ipa:
-	@echo "Exporting the unsigned IPA file..."
-	@xcodebuild -exportArchive -archivePath "$(ARCHIVE_PATH)" -exportOptionsPlist "$(EXPORT_OPTIONS_PLIST)" -exportPath "$(EXPORT_PATH)"
+# Step 4: Stage and package the app
+stage:
+	@echo "Preparing staging directory..."
+	@rm -rf $(STAGE_DIR)
+	@mkdir -p $(PAYLOAD_DIR)
+	@mv $(ARCHIVE_PATH)/Products/Applications/$(NAME).app $(PAYLOAD_DIR)
+	@rm -rf $(PAYLOAD_DIR)/_CodeSignature
 
-# Full build pipeline
-build_ipa: setup_xcode clean archive export_ipa
+package:
+	@echo "Packaging unsigned IPA..."
+	@$(MAKE) clean
+	@$(MAKE) archive
+	@$(MAKE) stage
+	@rm -f $(IPA_PATH)
+	@zip -r9 $(IPA_PATH) -j $(STAGE_DIR)/Payload
 	@echo "Unsigned IPA created successfully at $(IPA_PATH)"
 
 # Clean all build artifacts
 clean_all:
 	@echo "Cleaning all build files..."
-	@rm -rf build
+	@rm -rf build Payload
