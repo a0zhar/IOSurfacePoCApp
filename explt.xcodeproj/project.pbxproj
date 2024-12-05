@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 80; // Updated to reflect Xcode 16
+	objectVersion = 56; // Updated to reflect Xcode 16
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -125,7 +125,7 @@
 			);
 			mainGroup = 5D7795AB2CFB45E800EA74F6;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 80; // Updated to reflect Xcode 16
+			preferredProjectObjectVersion = 56; // Updated to reflect Xcode 16
 			productRefGroup = 5D7795B52CFB45E800EA74F6 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
