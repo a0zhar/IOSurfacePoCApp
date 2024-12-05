@@ -1,0 +1,31 @@
+name: Build iOS App2
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Xcode
+        run: sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+
+      - name: Build the app
+        run: |
+          xcodebuild -project explt.xcodeproj -scheme explt -configuration Release -archivePath ${{ github.workspace }}/build/explt.xcarchive archive
+          xcodebuild -exportArchive -archivePath ${{ github.workspace }}/build/explt.xcarchive -exportOptionsPlist exportOptions.plist -exportPath ${{ github.workspace }}/build
+
+      - name: Upload IPA as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: explt-ipa
+          path: build/*.ipa
