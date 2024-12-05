@@ -1,4 +1,4 @@
-name: Compile PoC Application
+name: Compile PoC Application (Use Xcode 13)
 
 on:
   workflow_dispatch:
@@ -13,49 +13,43 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Detect .xcodeproj file and format version
-      - name: Detect Xcode project and format version
-        id: detect_xcode
+      # Step 2: Detect available Xcode versions
+      - name: List available Xcode versions
+        id: list_xcode
         run: |
-          # Locate the .xcodeproj file
-          PROJECT_FILE=$(find . -name "*.xcodeproj" | head -n 1)
-          if [ -z "$PROJECT_FILE" ]; then
-            echo "Error: No .xcodeproj file found in the repository."
+          echo "Available Xcode versions:"
+          ls /Applications | grep Xcode
+          echo "Targeting Xcode 13.x..."
+          if [ ! -d "/Applications/Xcode_13.app" ] && [ ! -d "/Applications/Xcode_13.0.app" ]; then
+            echo "Error: Xcode 13 is not installed on the runner."
             exit 1
           fi
 
-          # Extract the project format version
-          FORMAT_VERSION=$(grep -o 'archiveVersion = [0-9]*;' "$PROJECT_FILE/project.pbxproj" | head -n 1 | grep -o '[0-9]*')
-          echo "Found project format version: $FORMAT_VERSION"
-          
-          # Map the format version to Xcode version
-          if [ "$FORMAT_VERSION" -ge 77 ]; then
-            XCODE_VERSION="15.4"
-          elif [ "$FORMAT_VERSION" -ge 75 ]; then
-            XCODE_VERSION="15.0"
-          elif [ "$FORMAT_VERSION" -ge 70 ]; then
-            XCODE_VERSION="14.0"
-          else
-            XCODE_VERSION="13.0"
-          fi
-          
-          echo "Determined Xcode version: $XCODE_VERSION"
-          echo "xcode_version=$XCODE_VERSION" >> $GITHUB_ENV
-          echo "project_file=$PROJECT_FILE" >> $GITHUB_ENV
-
-      # Step 3: Set up the determined Xcode version
-      - name: Set up Xcode
+      # Step 3: Switch to Xcode 13
+      - name: Set up Xcode 13
         run: |
-          sudo xcode-select --switch /Applications/Xcode_${{ env.xcode_version }}.app/Contents/Developer
+          if [ -d "/Applications/Xcode_13.app" ]; then
+            sudo xcode-select --switch /Applications/Xcode_13.app/Contents/Developer
+          elif [ -d "/Applications/Xcode_13.0.app" ]; then
+            sudo xcode-select --switch /Applications/Xcode_13.0.app/Contents/Developer
+          else
+            echo "Error: Unable to locate Xcode 13 directory."
+            exit 1
+          fi
           xcodebuild -version
 
-      # Step 4: Build the app (Unsigned and Without Development Team)
+      # Step 4: Build the app (Unsigned)
       - name: Build the app
         run: |
-          PROJECT_FILE="${{ env.project_file }}"
+          PROJECT_FILE=$(find . -name "*.xcodeproj" | head -n 1)
+          if [ -z "$PROJECT_FILE" ]; then
+            echo "Error: No .xcodeproj file found."
+            exit 1
+          fi
+
           ARCHIVE_PATH="${{ github.workspace }}/build/explt.xcarchive"
           DERIVED_DATA_PATH="${{ github.workspace }}/build/DerivedData"
-          
+
           # Clean the project
           xcodebuild -project "$PROJECT_FILE" \
                      -scheme explt \
