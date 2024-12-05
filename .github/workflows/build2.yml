@@ -72,6 +72,7 @@ jobs:
           # Export the app without signing
           xcodebuild -exportArchive \
                      -archivePath "$ARCHIVE_PATH" \
+                     -exportOptionsPlist "${{ github.workspace }}/entitlements.plist" \
                      -exportPath ${{ github.workspace }}/build
 
       # Step 5: Upload artifact
