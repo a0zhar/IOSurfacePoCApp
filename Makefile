@@ -1,24 +1,19 @@
-# Project variables
-NAME := explt
-PROJECT_FILE := $(shell find . -name "*.xcodeproj" | head -n 1)
-ARCHIVE_PATH := ./build/$(NAME).xcarchive
-DERIVED_DATA_PATH := ./build/DerivedData
-STAGE_DIR := ./build/stage
-EXPORT_PATH := ./build
-EXPORT_OPTIONS_PLIST := ./exportOptions.plist
-IPA_PATH := $(EXPORT_PATH)/$(NAME).ipa
-PAYLOAD_DIR := $(STAGE_DIR)/Payload
+PROJECT_FILE         := $(shell find . -name "*.xcodeproj" | head -n 1)
+ARCHIVE_PATH         := build/explt.xcarchive
+DERIVED_DATA_PATH    := build/DerivedData
+IPA_PATH             := build/explt.ipa
+EXPORT_OPTIONS_PLIST := $(shell pwd)/entitlements.plist
 
-# Target to build the unsigned IPA
-all: package
+# Define the target for the full build process
+all: build_ipa
 
-# Step 1: Set up Xcode environment
+# Step 1: List available Xcode versions and switch to Xcode 16.1
 setup_xcode:
-	@echo "Checking available Xcode versions..."
+	@echo "Available Xcode versions:"
 	@ls /Applications | grep Xcode
 	@echo "Targeting Xcode 16.1..."
 	@if [ ! -d "/Applications/Xcode_16.1.app" ]; then \
-		echo "Error: Xcode 16.1 is not installed on the system."; \
+		echo "Error: Xcode 16.1 is not installed on the runner."; \
 		exit 1; \
 	fi
 	@echo "Switching to Xcode 16.1..."
@@ -31,51 +26,46 @@ clean:
 		echo "Error: No .xcodeproj file found."; \
 		exit 1; \
 	fi
-	@echo "Cleaning the project..."
+	@echo "Cleaning project..."
 	@xcodebuild -project "$(PROJECT_FILE)" \
-		-scheme $(NAME) \
-		-configuration Debug \
-		-sdk iphoneos \
-		-derivedDataPath "$(DERIVED_DATA_PATH)" \
-		clean
+				-scheme explt \
+				-configuration Release \
+				-sdk iphoneos \
+				-derivedDataPath "$(DERIVED_DATA_PATH)" \
+				clean
 
-# Step 3: Build and archive the project
+# Step 3: Build the app (unsigned) and archive
 archive:
 	@if [ -z "$(PROJECT_FILE)" ]; then \
 		echo "Error: No .xcodeproj file found."; \
 		exit 1; \
 	fi
-	@echo "Building and archiving the app (unsigned)..."
+	@echo "Building and archiving the app..."
 	@xcodebuild -project "$(PROJECT_FILE)" \
-		-scheme $(NAME) \
-		-configuration Debug \
-		-sdk iphoneos \
-		-derivedDataPath "$(DERIVED_DATA_PATH)" \
-		-archivePath "$(ARCHIVE_PATH)" \
-		CODE_SIGN_IDENTITY="" \
-		CODE_SIGNING_REQUIRED=NO \
-		CODE_SIGN_ENTITLEMENTS="" \
-		CODE_SIGNING_ALLOWED=NO \
-		archive
+				-scheme explt \
+				-configuration Release \
+				-sdk iphoneos \
+				-derivedDataPath "$(DERIVED_DATA_PATH)" \
+				-archivePath "$(ARCHIVE_PATH)" \
+				CODE_SIGN_IDENTITY="" \
+				CODE_SIGNING_REQUIRED=NO \
+				CODE_SIGN_ENTITLEMENTS="" \
+				CODE_SIGNING_ALLOWED=NO \
+				archive
 
-# Step 4: Stage and package the app
-stage:
-	@echo "Preparing staging directory..."
-	@rm -rf $(STAGE_DIR)
-	@mkdir -p $(PAYLOAD_DIR)
-	@mv $(ARCHIVE_PATH)/Products/Applications/$(NAME).app $(PAYLOAD_DIR)
-	@rm -rf $(PAYLOAD_DIR)/_CodeSignature
+# Step 4: Manually create the IPA file
+export_ipa:
+	@echo "Creating the IPA file manually..."
+	@mkdir -p build/temp
+	@cp -R "$(ARCHIVE_PATH)/Products/Applications/explt.app" build/temp/
+	@cd build/temp && zip -r ../explt.ipa explt.app
+	@rm -rf build/temp
 
-package:
-	@echo "Packaging unsigned IPA..."
-	@$(MAKE) clean
-	@$(MAKE) archive
-	@$(MAKE) stage
-	@rm -f $(IPA_PATH)
-	@zip -r9 $(IPA_PATH) -j $(STAGE_DIR)/Payload
-	@echo "Unsigned IPA created successfully at $(IPA_PATH)"
+# Step 5: Complete build process (combine all steps)
+build_ipa: setup_xcode clean archive export_ipa
+	@echo "IPA build complete and available at $(IPA_PATH)"
 
-# Clean all build artifacts
+# Target to clean the build directory
 clean_all:
 	@echo "Cleaning all build files..."
-	@rm -rf build Payload
+	@rm -rf build
