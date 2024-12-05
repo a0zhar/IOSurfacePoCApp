@@ -1,59 +1,72 @@
-TARGET_CODESIGN = $(shell which ldid)
+# Define variables
+PROJECT_FILE := $(shell find . -name "*.xcodeproj" | head -n 1)
+ARCHIVE_PATH := build/explt.xcarchive
+DERIVED_DATA_PATH := build/DerivedData
+IPA_PATH := build/explt.ipa
+EXPORT_OPTIONS_PLIST := $(shell pwd)/entitlements.plist
 
-PLATFORM = iphoneos
-NAME = explt
-SCHEME ?= 'explt (Debug)'
-RELEASE = Release-iphoneos
-CONFIGURATION = Debug
+# Define the target for the full build process
+all: build_ipa
 
-MACOSX_SYSROOT = $(shell xcrun -sdk macosx --show-sdk-path)
-TARGET_SYSROOT = $(shell xcrun -sdk $(PLATFORM) --show-sdk-path)
+# Step 1: List available Xcode versions and switch to Xcode 16.1
+setup_xcode:
+	@echo "Available Xcode versions:"
+	@ls /Applications | grep Xcode
+	@echo "Targeting Xcode 16.1..."
+	@if [ ! -d "/Applications/Xcode_16.1.app" ]; then \
+		echo "Error: Xcode 16.1 is not installed on the runner."; \
+		exit 1; \
+	fi
+	@echo "Switching to Xcode 16.1..."
+	@sudo xcode-select --switch /Applications/Xcode_16.1.app/Contents/Developer
+	@xcodebuild -version
 
-APP_TMP         = $(TMPDIR)/$(NAME)
-STAGE_DIR   = $(APP_TMP)/stage
-APP_DIR 	   = $(APP_TMP)/Build/Products/$(RELEASE)/$(NAME).app
-
-all: package
-
-package:
-	@rm -rf $(APP_TMP)
-	
-	@set -o pipefail; \
-		xcodebuild \
-		-jobs $(shell sysctl -n hw.ncpu) \
-		-project 'explt.xcodeproj' \
-		-scheme $(SCHEME) \
-		-configuration $(CONFIGURATION) \
-		-arch arm64 -sdk $(PLATFORM) \
-		-derivedDataPath $(APP_TMP) \
-		CODE_SIGNING_ALLOWED=NO \
-		DSTROOT=$(APP_TMP)/install \
-		ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES=NO
-		
-	@rm -rf Payload
-	@rm -rf $(STAGE_DIR)/
-	@mkdir -p $(STAGE_DIR)/Payload
-	@mv $(APP_DIR) $(STAGE_DIR)/Payload/$(NAME).app
-	@echo $(APP_TMP)
-	@echo $(STAGE_DIR)
-	
-	@rm -rf $(STAGE_DIR)/Payload/$(NAME).app/_CodeSignature
-	@ln -sf $(STAGE_DIR)/Payload Payload
-	@rm -rf packages
-	@mkdir -p packages
-
-ifeq ($(TIPA),1)
-	@zip -r9 packages/$(NAME)-ts.tipa Payload
-else
-	@zip -r9 packages/$(NAME).ipa Payload
-endif
-
+# Step 2: Clean the project
 clean:
-	@rm -rf $(STAGE_DIR)
-	@rm -rf packages
-	@rm -rf out.dmg
-	@rm -rf Payload
-	@rm -rf apple-include
-	@rm -rf $(APP_TMP)
+	@if [ -z "$(PROJECT_FILE)" ]; then \
+		echo "Error: No .xcodeproj file found."; \
+		exit 1; \
+	fi
+	@echo "Cleaning project..."
+	@xcodebuild -project "$(PROJECT_FILE)" \
+				-scheme explt \
+				-configuration Release \
+				-sdk iphoneos \
+				-derivedDataPath "$(DERIVED_DATA_PATH)" \
+				clean
 
-.PHONY: apple-include
+# Step 3: Build the app (unsigned) and archive
+archive:
+	@if [ -z "$(PROJECT_FILE)" ]; then \
+		echo "Error: No .xcodeproj file found."; \
+		exit 1; \
+	fi
+	@echo "Building and archiving the app..."
+	@xcodebuild -project "$(PROJECT_FILE)" \
+				-scheme explt \
+				-configuration Release \
+				-sdk iphoneos \
+				-derivedDataPath "$(DERIVED_DATA_PATH)" \
+				-archivePath "$(ARCHIVE_PATH)" \
+				CODE_SIGN_IDENTITY="" \
+				CODE_SIGNING_REQUIRED=NO \
+				CODE_SIGN_ENTITLEMENTS="" \
+				CODE_SIGNING_ALLOWED=NO \
+				archive
+
+# Step 4: Export the archive to an IPA file
+export_ipa:
+	@echo "Exporting the IPA file..."
+	@xcodebuild -exportArchive \
+				-archivePath "$(ARCHIVE_PATH)" \
+				-exportOptionsPlist "$(EXPORT_OPTIONS_PLIST)" \
+				-exportPath "$(IPA_PATH)"
+
+# Step 5: Complete build process (combine all steps)
+build_ipa: setup_xcode clean archive export_ipa
+	@echo "IPA build complete and available at $(IPA_PATH)"
+
+# Target to clean the build directory
+clean_all:
+	@echo "Cleaning all build files..."
+	@rm -rf build
