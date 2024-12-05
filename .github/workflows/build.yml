@@ -1,0 +1,114 @@
+name: Build iPhone Application
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Install dependencies
+      - name: Install dependencies
+        run: |
+          # Ensure Homebrew is installed and updated
+          if ! command -v brew &> /dev/null; then
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          fi
+          brew update
+
+          # Install required tools
+          brew install xcparse || echo "xcparse already installed"
+          brew install jq || echo "jq already installed"
+
+      # Find Xcode workspace/project
+      - name: Discover Xcode workspace/project
+        id: discover
+        run: |
+          # Search for .xcodeproj or .xcworkspace files
+          XCODE_WORKSPACE=$(find . -name "*.xcworkspace" | head -n 1)
+          XCODE_PROJECT=$(find . -name "*.xcodeproj" | head -n 1)
+
+          if [ -n "$XCODE_WORKSPACE" ]; then
+            echo "workspace=$XCODE_WORKSPACE" >> $GITHUB_ENV
+          elif [ -n "$XCODE_PROJECT" ]; then
+            echo "project=$XCODE_PROJECT" >> $GITHUB_ENV
+          else
+            echo "No Xcode project or workspace found in the repository."
+            exit 1
+          fi
+
+      # Set up Xcode environment
+      - name: Set up Xcode
+        run: |
+          sudo xcode-select --switch /Applications/Xcode.app
+          xcodebuild -version
+          echo "Xcode setup completed."
+
+      # Build the app
+      - name: Build and export IPA
+        env:
+          DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+        run: |
+          # Set build path
+          BUILD_PATH=$(mktemp -d)
+          EXPORT_PATH=$(mktemp -d)
+
+          if [ -n "$workspace" ]; then
+            xcodebuild \
+              -workspace "$workspace" \
+              -scheme "$(basename $workspace .xcworkspace)" \
+              -configuration Release \
+              -sdk iphoneos \
+              -derivedDataPath "$BUILD_PATH" \
+              clean build
+          elif [ -n "$project" ]; then
+            xcodebuild \
+              -project "$project" \
+              -scheme "$(basename $project .xcodeproj)" \
+              -configuration Release \
+              -sdk iphoneos \
+              -derivedDataPath "$BUILD_PATH" \
+              clean build
+          else
+            echo "No workspace or project specified."
+            exit 1
+          fi
+
+          # Export the unsigned IPA
+          xcodebuild \
+            -exportArchive \
+            -archivePath "$BUILD_PATH/Build/Products/Release-iphoneos/$(ls $BUILD_PATH/Build/Products/Release-iphoneos)" \
+            -exportOptionsPlist <(cat <<EOF
+{
+  "method": "ad-hoc",
+  "signingStyle": "manual",
+  "provisioningProfiles": {},
+  "teamID": "",
+  "compileBitcode": false,
+  "stripSwiftSymbols": true,
+  "thinning": "<none>"
+}
+EOF
+            ) \
+            -exportPath "$EXPORT_PATH"
+
+          # Move IPA to root directory for artifact upload
+          mv "$EXPORT_PATH"/*.ipa .
+
+      # Upload the IPA artifact
+      - name: Upload IPA
+        uses: actions/upload-artifact@v3
+        with:
+          name: unsigned-app
+          path: ./*.ipa
