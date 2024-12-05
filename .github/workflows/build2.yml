@@ -1,4 +1,4 @@
-name: Compile PoC Application (Unsigned for Sideloading/TrollStore)
+name: Compile PoC Application
 
 on:
   workflow_dispatch:
